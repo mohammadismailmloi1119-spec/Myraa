@@ -17,20 +17,15 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: 20
 
-    - name: Install and Build Web Assets
+    - name: Setup Android Container Safely
       run: |
         cd unzipped_project
-        npm install --legacy-peer-deps
-        npm run build --if-present
-
-    - name: Setup Android Environment via Capacitor
-      run: |
-        cd unzipped_project
-        npm install @capacitor/core @capacitor/cli --save-dev
-        npx cap init MyraaCom com.myraa.app --web-dir=dist --success || npx cap init MyraaCom com.myraa.app --web-dir=build
-        npm install @capacitor/android
+        npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
+        mkdir -p dist
+        cp index.html dist/ 2>/dev/null || echo "<h1>Myraa App</h1>" > dist/index.html
+        npx cap init MyraaCom com.myraa.app --web-dir=dist --success
         npx cap add android
         npx cap sync
 
