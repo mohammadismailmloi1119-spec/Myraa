@@ -12,20 +12,27 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Unzip Project Files
-      run: |
-        unzip -qq -o "*.zip" -d unzipped_project
+      run: unzip -qq -o "*.zip" -d unzipped_project
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 18
-        cache: 'npm'
-        cache-dependency-path: './unzipped_project/package-lock.json'
 
-    - name: Install Dependencies
+    - name: Install and Build Web Assets
       run: |
         cd unzipped_project
         npm install --legacy-peer-deps
+        npm run build --if-present
+
+    - name: Setup Android Environment via Capacitor
+      run: |
+        cd unzipped_project
+        npm install @capacitor/core @capacitor/cli --save-dev
+        npx cap init MyraaCom com.myraa.app --web-dir=dist --success || npx cap init MyraaCom com.myraa.app --web-dir=build
+        npm install @capacitor/android
+        npx cap add android
+        npx cap sync
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -33,18 +40,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Generate Android Folder and Build
+    - name: Build Final Android APK
       run: |
-        cd unzipped_project
-        if [ -d "android" ]; then
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-        else
-          echo "No pre-configured build script found. Attempting alternative build..."
-          npx expo prebuild --platform android || true
-          cd android && chmod +x gradlew && ./gradlew assembleDebug
-        fi
+        cd unzipped_project/android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
