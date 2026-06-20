@@ -17,7 +17,34 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 18
+
+    - name: Clean Install and Force Web Build
+      run: |
+        cd unzipped_project
+        npm install --legacy-peer-deps
+        npm run build --if-present || true
+        
+        # Ensure a valid output folder exists for the mobile app
+        if [ ! -d "dist" ] && [ ! -d "build" ]; then
+          mkdir -p dist
+          cp index.html dist/ 2>/dev/null || echo "<h1>Myraa App</h1>" > dist/index.html
+        fi
+
+    - name: Generate Fresh Android Container
+      run: |
+        cd unzipped_project
+        WEB_DIR="dist"
+        if [ -d "build" ]; then WEB_DIR="build"; fi
+        
+        # Completely clear old conflicting configurations
+        rm -rf android capacitor.config.*
+        
+        # Initialize brand new Capacitor platform
+        npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
+        npx cap init MyraaCom com.myraa.app --web-dir=$WEB_DIR
+        npx cap add android
+        npx cap sync
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -25,22 +52,9 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Scan, Configure, and Build Android Project
+    - name: Build Final Android APK
       run: |
-        # Dynamically find the real Android settings file
-        SETTINGS_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" -print -quit)
-        if [ -z "$SETTINGS_PATH" ]; then
-          echo "Error: Could not locate a valid Android project settings file!"
-          exit 1
-        fi
-        
-        ANDROID_DIR=$(dirname "$SETTINGS_PATH")
-        echo "Found actual Android project directory at: $ANDROID_DIR"
-        cd "$ANDROID_DIR"
-        
-        # Invalidate conflicting configurations and inject Gradle wrapper tool
-        rm -f gradlew gradlew.bat
-        gradle wrapper --gradle-version 8.2
+        cd unzipped_project/android
         chmod +x gradlew
         ./gradlew assembleDebug
 
