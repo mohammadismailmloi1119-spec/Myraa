@@ -19,14 +19,12 @@ jobs:
       with:
         node-version: 20
 
-    - name: Setup Android Container Safely
+    - name: Prepare Android Project Assets
       run: |
         cd unzipped_project
         npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
         mkdir -p dist
         cp index.html dist/ 2>/dev/null || echo "<h1>Myraa App</h1>" > dist/index.html
-        npx cap init MyraaCom com.myraa.app --web-dir=dist
-        npx cap add android
         npx cap sync
 
     - name: Set up JDK 17
