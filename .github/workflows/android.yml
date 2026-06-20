@@ -37,6 +37,7 @@ jobs:
     - name: Build Final Android APK
       run: |
         cd unzipped_project/android
+        gradle wrapper --gradle-version 8.2
         chmod +x gradlew
         ./gradlew assembleDebug
 
