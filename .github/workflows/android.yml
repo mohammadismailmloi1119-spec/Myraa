@@ -11,21 +11,30 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Unzip Project Files
+    - name: Dynamically Find and Unzip Project
       run: |
-        unzip remix_myraa-ai-assistant.zip -d unzipped_project
-        
-    - name: set up JDK 17
+        ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" -print -quit)
+        if [ -z "$ZIP_FILE" ]; then
+          echo "Error: No .zip file found in the root directory!"
+          ls -la
+          exit 1
+        fi
+        echo "Found zip file: $ZIP_FILE"
+        mkdir -p unzipped_project
+        unzip -qq -o "$ZIP_FILE" -d unzipped_project
+
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Find and Build Android Project
+    - name: Run Android Build
       run: |
         GRADLEW_PATH=$(find . -name "gradlew" -print -quit)
         if [ -z "$GRADLEW_PATH" ]; then
-          echo "Error: gradlew file not found inside the zip!"
+          echo "Error: gradlew file not found anywhere inside the unzipped project!"
+          find . -maxdepth 3
           exit 1
         fi
         PROJECT_DIR=$(dirname "$GRADLEW_PATH")
