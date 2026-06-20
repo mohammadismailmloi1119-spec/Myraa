@@ -23,8 +23,9 @@ jobs:
       run: |
         cd unzipped_project
         npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
-        mkdir -p dist
+        mkdir -p dist www build
         cp index.html dist/ 2>/dev/null || echo "<h1>Myraa App</h1>" > dist/index.html
+        cp index.html www/ 2>/dev/null || echo "<h1>Myraa App</h1>" > www/index.html
         npx cap sync
 
     - name: Set up JDK 17
