@@ -11,17 +11,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Dynamically Find and Unzip Project
+    - name: Unzip Project Files
       run: |
-        ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" -print -quit)
-        if [ -z "$ZIP_FILE" ]; then
-          echo "Error: No .zip file found in the root directory!"
-          ls -la
-          exit 1
-        fi
-        echo "Found zip file: $ZIP_FILE"
-        mkdir -p unzipped_project
-        unzip -qq -o "$ZIP_FILE" -d unzipped_project
+        unzip -qq -o "*.zip" -d unzipped_project
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+        cache-dependency-path: './unzipped_project/package-lock.json'
+
+    - name: Install Dependencies
+      run: |
+        cd unzipped_project
+        npm install --legacy-peer-deps
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -29,19 +33,18 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Run Android Build
+    - name: Generate Android Folder and Build
       run: |
-        GRADLEW_PATH=$(find . -name "gradlew" -print -quit)
-        if [ -z "$GRADLEW_PATH" ]; then
-          echo "Error: gradlew file not found anywhere inside the unzipped project!"
-          find . -maxdepth 3
-          exit 1
+        cd unzipped_project
+        if [ -d "android" ]; then
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        else
+          echo "No pre-configured build script found. Attempting alternative build..."
+          npx expo prebuild --platform android || true
+          cd android && chmod +x gradlew && ./gradlew assembleDebug
         fi
-        PROJECT_DIR=$(dirname "$GRADLEW_PATH")
-        echo "Found project directory at: $PROJECT_DIR"
-        cd "$PROJECT_DIR"
-        chmod +x gradlew
-        ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
